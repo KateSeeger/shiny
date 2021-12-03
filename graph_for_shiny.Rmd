@@ -1,0 +1,171 @@
+---
+title: "shinydemo"
+author: "Kate Seeger"
+date: "11/18/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+
+library(shiny)
+# If you need to install my gardenR library
+# library(devtools)
+# devtools::install_github("llendway/gardenR")
+library(gardenR) # yay, my garden data again!
+library(tidyverse)
+library(DT) # for table output
+
+veggies <- garden_harvest %>% 
+  distinct(vegetable) %>% 
+  arrange(vegetable) %>% 
+  pull(vegetable)
+
+
+garden_graph <- garden_harvest  %>%
+  group_by(date, vegetable) %>%
+  summarize(sum_veg = sum(weight)) %>%
+  filter(vegetable %in% c("beets", "carrots", "potatoes", "radish", "onions", "rutabaga")) %>%
+  ggplot(aes(x = date, y = sum_veg, fill = vegetable)) + geom_boxplot() 
+
+shinygraph<- garden_harvest %>%
+ filter(vegetable %in% c("beets",
+                                           "carrots",
+                                        "potatoes", 
+                                                 "radish", 
+                                                 "onions", 
+                                                 "rutabaga")) %>%
+  group_by(date, vegetable) %>%
+  summarize(sum_veg = sum(weight))
+
+
+shinygraph %>%
+  filter(date == "2020-06-21") %>%
+  mutate(vegetable = as.factor(vegetable), 
+         sum_veg = as.integer(sum_veg)) %>%
+      ggplot(aes(sum_veg, fill = vegetable)) +
+      geom_histogram(position = "dodge") +
+      labs(title = paste("Sum weight (g) of root vegetables on "),
+           x = "",
+           y = "") +
+      theme_minimal()
+
+                                
+```
+
+library(shiny)
+# If you need to install my gardenR library
+# library(devtools)
+# devtools::install_github("llendway/gardenR")
+library(gardenR) # yay, my garden data again!
+library(tidyverse)
+library(DT) # for table output
+
+veggies <- garden_harvest %>% 
+  distinct(vegetable) %>% 
+  arrange(vegetable) %>% 
+  pull(vegetable)
+
+# Define UI for application 
+ui <- fluidPage(
+  # Application title
+  titlePanel("Root Veggies Harvested From Lisa's Garden"),
+  
+
+  # Sidebar with inputs 
+  sidebarLayout(
+    sidebarPanel(
+      #this is for box/bar/point plot
+      # dateInput(inputId = "date", 
+      #           label = "Date of Harvest", 
+      #           value = "2020-06-06"
+      #           ),
+      selectInput(inputId = "veg", # to use in code
+                  label = "Vegetable:", # how it looks in UI
+                  choices = veggies, 
+                  selected = "tomatoes"
+      ),
+      sliderInput(inputId = "date", 
+                  label = "Date Range: ",
+                  min = min(garden_harvest$date), 
+                  max = max(garden_harvest$date), 
+                  value = c(min(garden_harvest$date),
+                            max(garden_harvest$date)),
+                            )
+      
+      
+    ),
+    
+    # Show a plot of cumulative weight for chosen vegetable
+    # Show a table beneath
+    mainPanel(
+      plotOutput(outputId = "sum_veg"),
+      dataTableOutput(outputId = "sum_veg_tbl")
+    )
+  )
+)
+
+# Define server logic 
+server <- function(input, output) {
+  
+  # First, try this. It WILL NOT work :(    
+  # veg_smry <- garden_harvest %>% 
+  #     filter(vegetable == input$veg) %>% 
+  #     group_by(date) %>% 
+  #     summarize(daily_wt = sum(weight)) %>% 
+  #     mutate(cum_wt = cumsum(daily_wt))
+  
+  # Enclose in reactive() - makes a function
+  veg_smry <- reactive(garden_harvest %>%
+                         # filter(vegetable %in% c("beets",
+                         #                         "carrots",
+                         #                         "potatoes", 
+                         #                         "radish", 
+                         #                         "onions", 
+                         #                         "rutabaga")) %>%
+                         group_by(date, vegetable) %>%
+                         summarize(sum_veg = sum(weight)) %>%
+                         mutate(cum_wt = cumsum(sum_veg))
+  )
+                       
+  
+## THIS IS FOR BOXPLOT?BAR?POINTPLOT
+  
+#   # Now use that function, with no arguments.
+#   output$sum_veg <- renderPlot({
+#     veg_smry() %>% 
+#       filter(date == input$date) %>%
+#       ggplot(aes(x = vegetable, y = sum_veg, fill = vegetable)) +
+#       geom_boxplot() +
+#       labs(title = paste("Sum weight (gram) of root vegetables on ", input$date),
+#            x = "",
+#            y = "") +
+#       theme_minimal()
+#   })
+#   
+#   output$sum_veg_tbl <- renderDataTable(veg_smry())
+#   
+# }
+
+
+# Now use that function, with no arguments.
+output$sum_veg <- renderPlot({
+  veg_smry() %>% 
+    filter(vegetable == input$veg)
+    ggplot(aes(x = vegetable, y = sum_veg, fill = vegetable)) +
+    geom_boxplot() +
+    labs(title = paste("Sum weight (gram) of root vegetables on ", input$date),
+         x = "",
+         y = "") +
+    theme_minimal()
+})
+
+output$sum_veg_tbl <- renderDataTable(veg_smry())
+
+}
+
+# Run the application 
+shinyApp(ui = ui, server = server)

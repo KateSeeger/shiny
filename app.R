@@ -1,7 +1,4 @@
 library(shiny)
-# If you need to install my gardenR library
-# library(devtools)
-# devtools::install_github("llendway/gardenR")
 library(gardenR) # yay, my garden data again!
 library(tidyverse)
 library(DT) # for table output
@@ -30,11 +27,8 @@ ui <- fluidPage(
                  ),
     ),
     
-    # Show a plot of cumulative weight for chosen vegetable
-    # Show a table beneath
     mainPanel(
       plotOutput(outputId = "sum_veg"),
-      #dataTableOutput(outputId = "sum_veg_tbl")
     )
   )
 )
@@ -43,7 +37,7 @@ ui <- fluidPage(
 server <- function(input, output) {
   
 
-  # Enclose in reactive() - makes a function
+  # Reactive
   veg_smry <- reactive(garden_harvest %>%
                        filter(vegetable %in% c("beets",
                                                 "carrots",
@@ -58,15 +52,15 @@ server <- function(input, output) {
   )
   
   
-## THIS IS FOR BOXPLOT?BAR?POINTPLOT
-     # Now use that function, with no arguments.
+## Rendering Plot 
+  
      output$sum_veg <- renderPlot({
        veg_smry() %>%
          filter(date == input$date) %>%
          ggplot(aes(x = vegetable, y = sum_veg, fill = vegetable)) +
          geom_point(size = 6) +
          #scale_shape_manual(values = c(1, 2, 3, 4, 5, 6)) +
-         labs(title = paste("Sum weight (gram) of root vegetables on ", input$date),
+         labs(title = paste("Sum weight (grams) of root vegetables on ", input$date),
               x = "",
           y = "") +
          theme_economist() + 

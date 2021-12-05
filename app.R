@@ -60,7 +60,7 @@ server <- function(input, output) {
          ggplot(aes(x = vegetable, y = sum_veg, fill = vegetable)) +
          geom_point(size = 6) +
          #scale_shape_manual(values = c(1, 2, 3, 4, 5, 6)) +
-         labs(title = paste("Sum weight (grams) of root vegetables on ", input$date),
+         labs(title = paste("Daily weight (g) of root vegetables harvested on", input$date),
               x = "",
           y = "") +
          theme_economist() + 
